@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+    <style>
+        #myCanvas {
+            border: 1px solid #c3c3c3;
+            position: absolute;
+        }
+    </style>
+
+<canvas id="myCanvas" width="300" height="300"></canvas>
+
+<script type="text/javascript">
+    var canvas = document.getElementById("myCanvas");
+    var context = canvas.getContext("2d");
+    var canvasWidth = 300;
+    var canvasHeight = 300;
+
+    class Sprite {
+            constructor(img, x, y) {
+                this.x = x;
+                this.y = y;
+                this.img = img;
+            }
+
+            draw(context) {
+                context.drawImage(this.img, this.x, this.y);
+            }
+
+            move(context, distanceX, distanceY) {
+                this.x += distanceX;
+                this.y += distanceY;
+                context.drawImage(this.img, this.x, this.y);
+            }
+
+            isVisible() {
+                return this.visible;
+            }
+
+            setVisible(visible) {
+                this.visible = visible;
+            }
+
+            getHeight() {
+                return this.height;
+            }
+
+            setHeight(height) {
+                this.height = height;
+            }
+
+            getWidth() {
+                return this.width;
+            }
+
+            setWidth(width) {
+                this.width = width;
+            }
+
+            getX() {
+                return this.x;
+            }
+
+            setX(x) {
+                this.x = x;
+            }
+
+            getY() {
+                return this.y;
+            }
+
+            setY(y) {
+                this.y = y;
+            }
+
+            collideWith(sprite) {
+                var centerX = this.x + this.getWidth() / 2;
+                var centerY = this.y + this.getHeight() / 2;
+                var spriteCenterX = sprite.getX() + sprite.getWidth() / 2;
+                var spriteCenterY = sprite.getY() + sprite.getHeight() / 2;
+
+                if(Math.abs(centerX - spriteCenterX) < (this.width / 2 + sprite.getWidth() / 2)
+                &&
+                   Math.abs(centerY - spriteCenterY) < (this.height / 2 + sprite.getHeight() / 2)) {
+                    return true;
+                   } else {
+                    return false;
+                   }
+            }
+        }
+
+        class Airplane extends Sprite {
+            constructor(img, x, y) {
+                super(img, x, y);
+            }
+        }
+
+        class Bullet extends Sprite {
+            constructor(img, x, y) {
+                super(img, x, y);
+            }
+
+            move(context, distanceX, distanceY) {
+                this.x += distanceX;
+                this.y += distanceY;
+
+                //if the bullet should be out of the canvas, it will become invisible
+                if(this.y + this.height <= 0) {
+                    this.setVisible(false);
+                }
+            }
+        }
+
+        class EnemyPlane extends Sprite {
+            move(context, distanceX, distanceY) {
+                this.x += distanceX;
+                this.y += distanceY;
+
+                if(this.y >= canvasHeight) {
+                    this.setVisible(false);
+                }
+            }
+        }
+
+        //Blue Plane
+        var bluePlaneImage = new Image();
+        bluePlaneImage.src = "./images/blue_plane.png";
+        var bluePlane = new Airplane(bluePlaneImage, 60, 220);
+        bluePlaneImage.onload = function() {
+            bluePlane.setWidth(bluePlaneImage.width);
+            bluePlane.setHeight(bluePlaneImage.height);
+            bluePlane.draw(context);
+        };
+
+        //The bullet
+        var bulletImage = new Image();
+        bulletImage.src = "./images/red_bullet.png";
+        var bullet = new Bullet(bulletImage, -100, -100);
+        bulletImage.onload = function() {
+            bullet.setWidth(bulletImage.width);
+            bullet.setHeight(bulletImage.height);
+            bullet.setVisible(false);
+            bullet.draw(context);
+        }
+
+        //The enemy
+        var enemyImage = new Image();
+        enemyImage.src = "./images/enemy.png";
+        var enemyPlane = new EnemyPlane(enemyImage, -100, -100);
+        enemyImage.onload = function() {
+            enemyPlane.setWidth(enemyImage.width);
+            enemyPlane.setHeight(enemyImage.height);
+            enemyPlane.setVisible(false);
+            enemyPlane.draw(context);
+        }
+
+        canvas.addEventListener('keydown', doKeyDown, true);
+        canvas.focus();
+        window.addEventListener('keydown', doKeyDown, true);
+
+        function doKeyDown(e) {
+            context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            var keyID = e.keyCode ? e.keyCode: e.which;
+            if(keyID === 37) { //left arrow
+                bluePlane.move(context, -5, 0);
+                e.preventDefault();
+            }
+
+            if(keyID === 38) { //up arrow
+                bluePlane.move(context, 0, -5);
+                e.preventDefault();
+            }
+
+            if(keyID === 39) { //right arrow
+                bluePlane.move(context, 5, 0);
+                e.preventDefault();
+            }
+
+            if(keyID === 40) { //down arrow
+                bluePlane.move(context, 0, 5);
+                e.preventDefault();
+            }
+
+            if(keyID === 13) {
+                if(!bullet.isVisible()) {
+                    var x = bluePlane.getX() + bluePlane.getWidth() / 2 - bullet.getWidth() / 2;
+                    var y = bluePlane.getY() - bullet.getHeight();
+                    bullet.setX(x);
+                    bullet.setY(y);
+                    bullet.setVisible(true);
+                }
+                e.preventDefault();
+            }
+        }
+
+        function bulletMove() {
+            if(bullet.isVisible()) {
+                bullet.move(context, 0, -5);
+            }
+            bullet.draw(context);
+        }
+
+        function enemyPlaneMove() {
+            if(!enemyPlane.isVisible()) {
+                var x = Math.floor(Math.random() * canvasWidth) + 1;
+                var y = -enemyPlane.getHeight();
+                enemyPlane.setX(x);
+                enemyPlane.setY(y);
+                enemyPlane.setVisible(true);
+                enemyPlane.draw(context);
+            }
+
+            if(enemyPlane.isVisible()) {
+                enemyPlane.move(context, 0, 3);
+            }
+            enemyPlane.draw(context);
+        }
+
+        function collide() {
+            if(bullet.isVisible() && enemyPlane.isVisible()) {
+                if(bullet.collideWith(enemyPlane)) {
+                    bullet.setX(-100);
+                    bullet.setY(-100);
+                    bullet.setVisible(false);
+                    enemyPlane.setVisible(false);
+                }
+            }
+        }
+
+        function reDraw() {
+            context.clearRect(0, 0, canvasWidth, canvasHeight);
+            enemyPlaneMove();
+            bulletMove();
+            bluePlane.draw(context);
+            collide();
+        }
+
+        window.onload = function() {
+            var time = setInterval("reDraw()", 200);
+        }
+
+</script>
+</html>
